@@ -1,8 +1,8 @@
 advChecks = [
-    ("minecraft:recipes/misc/charcoal", "has_log"),
-    ("minecraft:story/iron_tools", "iron_pickaxe"),
     ("timelines", "enter_nether"),
+    ("minecraft:story/form_obsidian", "obsidian"),
     ("timelines", "enter_bastion"),
+    ("minecraft:story/iron_tools", "iron_pickaxe"),
     ("timelines", "enter_fortress"),
     ("timelines", "nether_travel"),
     ("timelines", "enter_stronghold"),

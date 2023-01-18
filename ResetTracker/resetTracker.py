@@ -40,6 +40,7 @@ class NewRecord(FileSystemEventHandler):
     buffer_observer = None
     prev = None
     src_path = None
+    # time of last reset
     prev_datetime = None
     wall_resets = 0
     rta_spent = 0
@@ -55,8 +56,9 @@ class NewRecord(FileSystemEventHandler):
             return False, "Path error"
         if self.data is None:
             return False, "Empty data error"
-        if self.data['run_type'] != 'random_seed':
-            return False, "Set seed detected, will not track"
+        # FSG
+        # if self.data['run_type'] != 'random_seed':
+        #     return False, "Set seed detected, will not track"
         return True, ""
 
     def on_created(self, evt):
@@ -76,20 +78,24 @@ class NewRecord(FileSystemEventHandler):
             print(validation[1])
             return
 
-        # Calculate breaks
+        # Update prev_datetime, calculate break_rta
         if self.prev_datetime is not None:
             run_offset = self.prev_datetime + \
                 timedelta(milliseconds=self.data["final_rta"])
             self.prev_datetime = datetime.now()
+            #RTA between end of last run and start of this run but done badly
             run_differ = self.prev_datetime - run_offset
             if run_differ > timedelta(seconds=settings["break-offset"]):
                 self.break_rta += run_differ.total_seconds() * 1000
         else:
             self.prev_datetime = datetime.now()
 
+        #increment wall_resets if wall reset
         if self.data["final_rta"] == 0:
             self.wall_resets += 1
             return
+        
+        #populate stats, adv, lan
         uids = list(self.data["stats"].keys())
         if len(uids) == 0:
             return
@@ -101,20 +107,21 @@ class NewRecord(FileSystemEventHandler):
         else:
             lan = math.inf
 
-        # Advancements
-        has_done_something = False
         self.this_run[0] = ms_to_string(self.data["final_rta"])
+
+        # Advancements
+        has_done_something = False # has made an advancement
         for idx in range(len(advChecks)):
             # Prefer to read from timelines
-            if advChecks[idx][0] == "timelines" and self.this_run[idx + 1] is None:
-                for tl in self.data["timelines"]:
+            if advChecks[idx][0] == "timelines" and self.this_run[idx + 1] is None: # totally not jank 
+                for tl in self.data["timelines"]: #most efficient algorithm
                     if tl["name"] == advChecks[idx][1]:
-                        if lan > int(tl["rta"]):
+                        if lan > int(tl["rta"]): # if done legit (before opening to lan)
                             self.this_run[idx + 1] = ms_to_string(tl["igt"])
                             has_done_something = True
             # Read other stuff from advancements
             elif (advChecks[idx][0] in adv and adv[advChecks[idx][0]]["complete"] and self.this_run[idx + 1] is None):
-                if lan > int(adv[advChecks[idx][0]]["criteria"][advChecks[idx][1]]["rta"]):
+                if lan > int(adv[advChecks[idx][0]]["criteria"][advChecks[idx][1]]["rta"]): #variables are a myth
                     self.this_run[idx +
                                   1] = ms_to_string(adv[advChecks[idx][0]]["criteria"][advChecks[idx][1]]["igt"])
                     has_done_something = True
@@ -142,43 +149,11 @@ class NewRecord(FileSystemEventHandler):
                 )
 
         # Generate other stuff
-        iron_source = "None"
-        if "minecraft:story/smelt_iron" in adv or "minecraft:story/iron_tools" in adv or (
-                "minecraft:crafted" in stats and "minecraft:diamond_pickaxe" in stats["minecraft:crafted"]):
-            iron_source = "Structureless"
-            # If mined haybale or killed golem then village
-            if ("minecraft:mined" in stats and "minecraft:hay_block" in stats["minecraft:mined"]) or (
-                    "minecraft:killed" in stats and "minecraft:iron_golem" in stats["minecraft:killed"]):
-                iron_source = "Village"
-            elif "minecraft:used" in stats and ("minecraft:cooked_salmon" in stats["minecraft:used"] or "minecraft:cooked_cod" in stats["minecraft:used"]):
-                iron_source = "Buried Treasure"
-            elif "minecraft:adventure/adventuring_time" in adv:
-                for biome in adv["minecraft:adventure/adventuring_time"]["criteria"]:
-                    # If youre in an ocean before 3m
-                    if "ocean" in biome and int(adv["minecraft:adventure/adventuring_time"]["criteria"][biome]["igt"]) < 180000:
-                        iron_source = "Ship/BT"
-                        break
+        # iron source redundant, almost always bastion
 
-        enter_type = "None"
-        if "minecraft:story/enter_the_nether" in adv:
-            enter_type = "Obsidian"
-            if "minecraft:mined" in stats and "minecraft:magma_block" in stats["minecraft:mined"]:
-                if "minecraft:story/lava_bucket" in adv:
-                    enter_type = "Magma Ravine"
-                else:
-                    enter_type = "Bucketless"
-            elif "minecraft:story/lava_bucket" in adv:
-                enter_type = "Lava Pool"
+        # enter type redundant, always completable RP
 
-        gold_source = "None"
-        if ("minecraft:dropped" in stats and "minecraft:gold_ingot" in stats["minecraft:dropped"]) or (
-            "minecraft:picked_up" in stats and (
-                "minecraft:gold_ingot" in stats["minecraft:picked_up"] or "minecraft:gold_block" in stats["minecraft:picked_up"])):
-            gold_source = "Classic"
-            if "minecraft:mined" in stats and "minecraft:dark_prismarine" in stats["minecraft:mined"]:
-                gold_source = "Monument"
-            elif "minecraft:nether/find_bastion" in adv:
-                gold_source = "Bastion"
+        # gold source redundant, always bastion
 
         spawn_biome = "None"
         if "minecraft:adventure/adventuring_time" in adv:
@@ -190,7 +165,7 @@ class NewRecord(FileSystemEventHandler):
 
         # Push to csv
         d = ms_to_string(int(self.data["date"]), returnTime=True)
-        data = ([str(d), iron_source, enter_type, gold_source, spawn_biome] + self.this_run +
+        data = ([str(d), spawn_biome] + self.this_run +
                 [ms_to_string(iron_time), str(self.wall_resets), str(self.splitless_count),
                  ms_to_string(self.rta_spent), ms_to_string(self.break_rta)])
 
