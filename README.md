@@ -4,7 +4,7 @@
 
 Follow [TalkingMime's Tutorial](https://youtu.be/KIAo3Lgsk_Q), but instead of giving the program your saves path you give it your SpeedrunIGT record folder (ie: C:\\Users\\NAME\\speedrunigt\\records)
 
-Use the [new stats sheet](https://docs.google.com/spreadsheets/d/1XvRLLQ5J1zAqraUkJ06qAGdYTeCFHhnmrv2nkWoXIO0/edit#gid=1357582403) instead of the one Mime uses, and make sure its publicly viewable! :]
+Use the [fsg stats sheet](https://docs.google.com/spreadsheets/d/1WHuQXlshD6vdTRMAYIn9wkyKkaIAn8BM2FiUXAG6KVk/edit?usp=sharing) instead of specnr's or the one Mime uses, and make sure its publicly viewable! :]
 
 ## Required Mods:
 - Atum 1.0.5+
