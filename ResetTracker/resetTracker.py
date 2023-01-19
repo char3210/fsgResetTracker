@@ -10,6 +10,8 @@ from Sheets import main, setup
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from checks import advChecks, statsChecks
+import twitchcmds
+import asyncio
 
 statsCsv = "stats.csv"
 try:
@@ -219,8 +221,11 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()  # < This actually starts the thread execution in the background
 
+    print("Enabling twitch integration...")
+    asyncio.run(twitchcmds.enable())
+
     print("Tracking...")
-    print("Type 'quit' when you are done")
+    print("Type 'help' for help, 'quit' when you are done")
     live = True
 
     try:
@@ -230,10 +235,16 @@ if __name__ == "__main__":
             except:
                 val = ""
             if (val == "help") or (val == "?"):
-                print("there is literally one other command and it's quit")
+                print("quit - quit")
+                print("reset - resets twitch counters")
             if (val == "stop") or (val == "quit"):
                 live = False
+            if (val == "reset"):
+                print("Resetting counters...")
+                twitchcmds.reset()
+                print("...done")
             time.sleep(1)
     finally:
         newRecordObserver.stop()
+        twitchcmds.stop()
         newRecordObserver.join()
