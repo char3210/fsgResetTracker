@@ -1,49 +1,64 @@
 import gspread
 import json
-import copy
 import csv
 import time
+import threading
+from resetTracker import settings
+from resetTracker import write_settings
 
+enabled = False
 
 def setup():
     global sh
     global gc
-    try:
-        settings_file = open("settings.json")
-    except Exception as e:
-        print(e)
-        print(
-            "Could not find settings.json, make sure you have the file in the same directory as the exe, and named exactly 'settings.json'"
-        )
-        input("")
 
-    settings = json.load(settings_file)
-    settings_file.close()
+    if "sheets" not in settings or "enabled" not in settings["sheets"]:
+        yesno = input("Would you like to enable google sheets integration? (y/n)")
+        settings["sheets"] = settings["sheets"] or {} # i should probably not abuse this
+        settings["sheets"]["enabled"] = yesno.lower() == "y"
+        write_settings(settings)
+    
+    sheetsettings = settings["sheets"]
+    
+    if not sheetsettings["enabled"]:
+        print("Skipping google sheets integration")
+        return
+    
+    print("Enabling google sheets integration...")
     try:
         gc = gspread.service_account(filename="credentials.json")
-    except Exception as e:
+    except FileNotFoundError as e:
         print(e)
         print(
-            "Could not find credentials.json, make sure you have the file in the same directory as the exe, and named exactly 'credentials.json'"
+            "Could not find credentials.json, make sure you have the file in the same directory as the exe, and named exactly 'credentials.json'. " \
+                "Cancelling google sheets integration"
         )
-        input("")
+        return
+
 
     while True:
         try:
-            sh = gc.open_by_url(settings["spreadsheet-link"])
-        except:
+            sh = gc.open_by_url(sheetsettings["spreadsheet-link"])
+        except gspread.exceptions.SpreadsheetNotFound:
             creds_file = open("credentials.json", "r")
             creds = json.load(creds_file)
             creds_file.close()
             print("Don't forget to share the google sheet with",
                   creds["client_email"])
-            settings["spreadsheet-link"] = input("Link to your Sheet:")
-            settings_file = open("settings.json", "w")
-            json.dump(settings, settings_file)
-            settings_file.close()
+            sheetsettings["spreadsheet-link"] = input("Link to your Sheet:")
+            write_settings(settings)
             continue
         else:
             break
+
+    t = threading.Thread(
+        target=main, name="sheets"
+    )  # < Note that I did not actually call the function, but instead sent it as a parameter
+    t.daemon = True
+    t.start()  # < This actually starts the thread execution in the background
+    
+    global enabled
+    enabled = True
 
 
 def main():

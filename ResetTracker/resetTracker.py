@@ -13,18 +13,14 @@ from checks import advChecks, statsChecks
 import twitchcmds
 import asyncio
 
-statsCsv = "stats.csv"
-try:
-    settings_file = open("settings.json")
-    settings = json.load(settings_file)
-    settings_file.close()
-except Exception as e:
-    print(e)
-    print(
-        "Could not find settings.json, make sure you have the file in the same directory as the exe, and named exactly 'settings.json'"
-    )
-    wait = input("")
+DEFAULT_SETTINGS = {
+    "path": "PATH",
+    "spreadsheet-link": "LINK",
+    "delete-old-records": True,
+    "break-offset": 20
+}
 
+statsCsv = "stats.csv"
 
 def ms_to_string(ms, returnTime=False):
     if ms is None:
@@ -35,6 +31,33 @@ def ms_to_string(ms, returnTime=False):
         return t
     return t.strftime("%H:%M:%S")
 
+def write_settings(settings):
+    settings_file = open("settings.json", "w")
+    json.dump(settings, settings_file, indent=2)
+    settings_file.close()
+
+def read_settings():
+    try:
+        settings_file = open("settings.json")
+        settings = json.load(settings_file)
+        settings_file.close()
+    except FileNotFoundError:
+        print(
+            "Could not find settings.json, writing default settings..."
+        )
+        settings = json.loads(json.dumps(DEFAULT_SETTINGS))
+        write_settings(DEFAULT_SETTINGS)
+    except json.decoder.JSONDecodeError as e:
+        print("Error when reading settings.json:", e)
+        print(
+            "Creating backup and writing default settings..."
+        )
+        settings_file.close()
+        backup_name = "settings_backup_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".json"
+        os.rename("settings.json", backup_name)
+        settings = json.loads(json.dumps(DEFAULT_SETTINGS))
+        write_settings(DEFAULT_SETTINGS)
+    return settings
 
 class NewRecord(FileSystemEventHandler):
     buffer = None
@@ -204,12 +227,11 @@ class NewRecord(FileSystemEventHandler):
         self.splitless_count = 0
         self.break_rta = 0
 
-
 if __name__ == "__main__":
-    settings_file = open("settings.json", "w")
-    json.dump(settings, settings_file)
-    settings_file.close()
+    settings = read_settings()
+    write_settings(settings)
 
+    #init record observer (required)
     while True:
         try:
             newRecordObserver = Observer()
@@ -219,27 +241,24 @@ if __name__ == "__main__":
             print("tracking: ", settings["path"])
             newRecordObserver.start()
             print("Started")
-        except Exception as e:
+        except FileNotFoundError as e:
             print("Records directory could not be found")
+            default_path = os.path.expanduser("~\\speedrunigt\\records")
             settings["path"] = input(
-                "Path to SpeedrunIGT records folder: "
-            )
-            settings_file = open("settings.json", "w")
-            json.dump(settings, settings_file)
-            settings_file.close()
+                f"Path to SpeedrunIGT records folder (leave blank for \"{default_path}\"): "
+            ) or default_path # if input() is blank, use default
+            write_settings(settings)
         else:
             break
     if settings["delete-old-records"]:
         files = glob.glob(f'{settings["path"]}\\*.json')
         for f in files:
             os.remove(f)
+    
+    # init sheets
     setup()
-    t = threading.Thread(
-        target=main, name="sheets"
-    )  # < Note that I did not actually call the function, but instead sent it as a parameter
-    t.daemon = True
-    t.start()  # < This actually starts the thread execution in the background
-
+        
+    # init twitch
     print("Enabling twitch integration...")
     asyncio.run(twitchcmds.enable())
 
@@ -257,6 +276,7 @@ if __name__ == "__main__":
                 print("quit - quit")
                 print("reset - resets twitch counters")
             if (val == "stop") or (val == "quit"):
+                print("Stopping...")
                 live = False
             if (val == "reset"):
                 print("Resetting counters...")
