@@ -124,13 +124,13 @@ class NewRecord(FileSystemEventHandler):
             if check[0] == "timelines" and self.this_run[idx + 1] is None: # totally not jank 
                 for tl in self.data["timelines"]: #most efficient algorithm
                     if tl["name"] == check[1]:
-                        # if lan > int(tl["rta"]): # if done legit (before opening to lan)
+                        if lan > int(tl["rta"]): # if done legit (before opening to lan)
                             self.this_run[idx + 1] = ms_to_string(tl["igt"])
                             time = tl["igt"]
                             has_done_something = True
             # Read other stuff from advancements
             elif (check[0] in adv and adv[check[0]]["complete"] and self.this_run[idx + 1] is None):
-                # if lan > int(adv[check[0]]["criteria"][check[1]]["rta"]): #variables are a myth
+                if lan > int(adv[check[0]]["criteria"][check[1]]["rta"]): #variables are a myth
                     time = adv[check[0]]["criteria"][check[1]]["igt"]
                     self.this_run[idx +
                                   1] = ms_to_string(time)

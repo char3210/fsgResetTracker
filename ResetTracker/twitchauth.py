@@ -144,8 +144,7 @@ class ImplicitAuthenticator:
         self.logger.debug(f'got callback with state {val}')
         # invalid state!
         if val != self.state:
-            # return web.Response(status=401)
-            print("INVALID STATE") # TODO uncomment
+            return web.Response(status=401)
         self.__user_token = request.rel_url.query.get('access_token')
         if self.__user_token is None:
             # must provide code
