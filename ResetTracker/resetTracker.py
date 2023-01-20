@@ -111,22 +111,37 @@ class NewRecord(FileSystemEventHandler):
 
         self.this_run[0] = ms_to_string(self.data["final_rta"])
 
+        #increment completion count
+        if self.data["is_completed"] and lan > self.data["final_igt"]:
+            twitchcmds.completion()
+
         # Advancements
         has_done_something = False # has made an advancement
         for idx in range(len(advChecks)):
+            time = None
+            check = advChecks[idx]
             # Prefer to read from timelines
-            if advChecks[idx][0] == "timelines" and self.this_run[idx + 1] is None: # totally not jank 
+            if check[0] == "timelines" and self.this_run[idx + 1] is None: # totally not jank 
                 for tl in self.data["timelines"]: #most efficient algorithm
-                    if tl["name"] == advChecks[idx][1]:
-                        if lan > int(tl["rta"]): # if done legit (before opening to lan)
+                    if tl["name"] == check[1]:
+                        # if lan > int(tl["rta"]): # if done legit (before opening to lan)
                             self.this_run[idx + 1] = ms_to_string(tl["igt"])
+                            time = tl["igt"]
                             has_done_something = True
             # Read other stuff from advancements
-            elif (advChecks[idx][0] in adv and adv[advChecks[idx][0]]["complete"] and self.this_run[idx + 1] is None):
-                if lan > int(adv[advChecks[idx][0]]["criteria"][advChecks[idx][1]]["rta"]): #variables are a myth
+            elif (check[0] in adv and adv[check[0]]["complete"] and self.this_run[idx + 1] is None):
+                # if lan > int(adv[check[0]]["criteria"][check[1]]["rta"]): #variables are a myth
+                    time = adv[check[0]]["criteria"][check[1]]["igt"]
                     self.this_run[idx +
-                                  1] = ms_to_string(adv[advChecks[idx][0]]["criteria"][advChecks[idx][1]]["igt"])
+                                  1] = ms_to_string(time)
                     has_done_something = True
+
+            if time is not None:
+                #hardcode some cases for twitch commands
+                if check[1] == "nether_travel":
+                    twitchcmds.blind(int(time))
+                elif check[1] == "enter_end":
+                    twitchcmds.enter_end()
 
         # If nothing was done, just count as reset
         if not has_done_something:
@@ -179,6 +194,10 @@ class NewRecord(FileSystemEventHandler):
             writer = csv.writer(outfile)
             for line in reader:
                 writer.writerow(line)
+
+        # update twitch command
+        asyncio.run(twitchcmds.update_command())
+
         # Reset all counters/sums
         self.wall_resets = 0
         self.rta_spent = 0
@@ -242,6 +261,7 @@ if __name__ == "__main__":
             if (val == "reset"):
                 print("Resetting counters...")
                 twitchcmds.reset()
+                asyncio.run(twitchcmds.update_command())
                 print("...done")
             time.sleep(1)
     finally:

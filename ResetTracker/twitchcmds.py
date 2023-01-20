@@ -9,29 +9,50 @@ dirty = False
 chat: Chat = None
 room: str = None
 
+blinds = [0] * 4
+ees = 0
+completions = 0
+
 def blind(time):
-    # if blind is sub 3 increment sub 3 counter, etc.
+    """
+    called when user gets a run that blinds at a time (in ms) 
+    """
+    global dirty
+    blinds[0] += 1
+    if time < 4*60*1000: # sub 4
+        blinds[1] += 1
+    if time < (3*60+30)*1000: # sub 3:30
+        blinds[2] += 1
+    if time < 3*60*1000: # sub 3
+        blinds[3] += 1
     dirty = True
 
 def enter_end():
+    global dirty, ees
+    ees += 1
     dirty = True
 
 def completion():
+    global dirty, completions
+    completions += 1
     dirty = True
 
 def reset():
-    #things
+    global dirty, blinds, ees, completions
+    blinds = [0] * 4
+    ees = 0
+    completions = 0
     dirty = True
-    updateCommand()
-    pass
 
-async def updateCommand():
+async def update_command():
+    global dirty
     if enabled and dirty:
         dirty = False
         await chat.send_message(room, get_update_command())
 
 def get_update_command():
-    return "!commands"
+    return f"!editcom !today Blinds: {blinds[0]} [Sub 4: {blinds[1]}] [Sub 3:30: {blinds[2]}] [Sub 3: {blinds[3]}] | " \
+        f"Enter Ends: {ees} | Completions: {completions}"
 
 async def enable():
     twitch = await Twitch('cy0wkkzf69rj7gsvypb6tjxdvdoif3', authenticate_app=False)
@@ -49,8 +70,7 @@ async def enable():
 
     thisuser = await first(twitch.get_users())
 
-    global chat
-    global room
+    global chat, room, enabled
     chat = await Chat(twitch)
     chat.start()
 

@@ -59,7 +59,12 @@ class ImplicitAuthenticator:
         </head>
         <body>
             <h1>Thanks for Authenticating with pyTwitchAPI!</h1>
-        You may now close this page.
+        This page closes itself after 5 seconds.
+            <script>
+            setTimeout(function() {
+                window.close();
+                }, 5000);
+            </script>
         </body>
         </html>"""
         """The document that will be rendered at the end of the flow"""

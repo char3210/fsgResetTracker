@@ -153,3 +153,5 @@ ResetTracker/seed.py
 ResetTracker/settings.json
 ResetTracker/seed.py
 ResetTracker/.vscode/launch.json
+
+*.bat
