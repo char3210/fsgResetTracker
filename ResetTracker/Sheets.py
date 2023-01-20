@@ -3,18 +3,17 @@ import json
 import csv
 import time
 import threading
-from resetTracker import settings
-from resetTracker import write_settings
-
-enabled = False
+from Settings import settings, write_settings
 
 def setup():
     global sh
     global gc
 
-    if "sheets" not in settings or "enabled" not in settings["sheets"]:
-        yesno = input("Would you like to enable google sheets integration? (y/n)")
-        settings["sheets"] = settings["sheets"] or {} # i should probably not abuse this
+    if 'sheets' not in settings:
+        settings['sheets'] = {}
+    
+    if "enabled" not in settings["sheets"]:
+        yesno = input("Would you like to enable Google Sheets integration? (y/n) ")
         settings["sheets"]["enabled"] = yesno.lower() == "y"
         write_settings(settings)
     
@@ -30,22 +29,22 @@ def setup():
     except FileNotFoundError as e:
         print(e)
         print(
-            "Could not find credentials.json, make sure you have the file in the same directory as the exe, and named exactly 'credentials.json'. " \
-                "Cancelling google sheets integration"
+            "Could not find credentials.json, make sure you have the file in the same directory as the exe, and named exactly 'credentials.json'. "
         )
+        print('Cancelling google sheets integration')
         return
 
 
     while True:
         try:
             sh = gc.open_by_url(sheetsettings["spreadsheet-link"])
-        except gspread.exceptions.SpreadsheetNotFound:
+        except:
             creds_file = open("credentials.json", "r")
             creds = json.load(creds_file)
             creds_file.close()
             print("Don't forget to share the google sheet with",
                   creds["client_email"])
-            sheetsettings["spreadsheet-link"] = input("Link to your Sheet:")
+            sheetsettings["spreadsheet-link"] = input("Link to your Sheet: ")
             write_settings(settings)
             continue
         else:
@@ -57,10 +56,6 @@ def setup():
     t.daemon = True
     t.start()  # < This actually starts the thread execution in the background
     
-    global enabled
-    enabled = True
-
-
 def main():
     try:
 
@@ -109,12 +104,10 @@ def main():
                 f.close()
             except Exception as e:
                 print(e)
-
         live = True
-        print("Finished authorizing, will update sheet every 30 seconds")
         while live:
             push_data()
             time.sleep(30)
     except Exception as e:
-        print(e)
+        print("Error in Sheets thread", e)
         input("")

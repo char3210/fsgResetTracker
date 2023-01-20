@@ -3,6 +3,8 @@ from twitchAPI.helper import first
 from twitchAPI.types import AuthScope, TwitchAPIException
 from twitchAPI.chat import Chat
 from twitchauth import ImplicitAuthenticator
+import asyncio
+from Settings import settings, write_settings
 
 enabled = False
 dirty = False
@@ -54,6 +56,24 @@ def get_update_command():
     return f"!editcom !today Blinds: {blinds[0]} [Sub 4: {blinds[1]}] [Sub 3:30: {blinds[2]}] [Sub 3: {blinds[3]}] | " \
         f"Enter Ends: {ees} | Completions: {completions}"
 
+def setup():
+    if 'twitch' not in settings:
+        settings['twitch'] = {}
+    twitchsettings = settings['twitch']
+
+    if "enabled" not in twitchsettings:
+        yesno = input("Would you like to enable Twitch integration? (y/n) ")
+        twitchsettings["enabled"] = yesno.lower() == "y"
+        write_settings(settings)
+    
+    if not twitchsettings['enabled']:
+        print('Skipping twitch integration')
+        return
+
+    print("Enabling twitch integration...")
+
+    asyncio.run(enable())
+
 async def enable():
     twitch = await Twitch('cy0wkkzf69rj7gsvypb6tjxdvdoif3', authenticate_app=False)
     twitch.auto_refresh_auth = False
@@ -80,4 +100,5 @@ async def enable():
     enabled = True
 
 def stop():
-    chat.stop()
+    if enabled:
+        chat.stop()

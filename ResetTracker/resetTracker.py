@@ -7,18 +7,12 @@ import os
 from datetime import datetime, timedelta
 import threading
 from Sheets import main, setup
+from Settings import settings, read_settings, write_settings, DEFAULT_SETTINGS
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from checks import advChecks, statsChecks
 import twitchcmds
 import asyncio
-
-DEFAULT_SETTINGS = {
-    "path": "PATH",
-    "spreadsheet-link": "LINK",
-    "delete-old-records": True,
-    "break-offset": 20
-}
 
 statsCsv = "stats.csv"
 
@@ -30,34 +24,6 @@ def ms_to_string(ms, returnTime=False):
     if returnTime:
         return t
     return t.strftime("%H:%M:%S")
-
-def write_settings(settings):
-    settings_file = open("settings.json", "w")
-    json.dump(settings, settings_file, indent=2)
-    settings_file.close()
-
-def read_settings():
-    try:
-        settings_file = open("settings.json")
-        settings = json.load(settings_file)
-        settings_file.close()
-    except FileNotFoundError:
-        print(
-            "Could not find settings.json, writing default settings..."
-        )
-        settings = json.loads(json.dumps(DEFAULT_SETTINGS))
-        write_settings(DEFAULT_SETTINGS)
-    except json.decoder.JSONDecodeError as e:
-        print("Error when reading settings.json:", e)
-        print(
-            "Creating backup and writing default settings..."
-        )
-        settings_file.close()
-        backup_name = "settings_backup_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".json"
-        os.rename("settings.json", backup_name)
-        settings = json.loads(json.dumps(DEFAULT_SETTINGS))
-        write_settings(DEFAULT_SETTINGS)
-    return settings
 
 class NewRecord(FileSystemEventHandler):
     buffer = None
@@ -228,28 +194,30 @@ class NewRecord(FileSystemEventHandler):
         self.break_rta = 0
 
 if __name__ == "__main__":
-    settings = read_settings()
+    settings.update(read_settings())
     write_settings(settings)
 
+    while 'path' not in settings or not os.path.exists(settings['path']):
+        print("Records directory could not be found")
+        
+        default_path = os.path.expanduser(os.path.join('~', 'speedrunigt', 'records'))
+        settings["path"] = input(
+            f"Path to SpeedrunIGT records folder (leave blank for \"{default_path}\"): "
+        ) or default_path # if input() is blank, use default
+        write_settings(settings)
+
     #init record observer (required)
-    while True:
-        try:
-            newRecordObserver = Observer()
-            event_handler = NewRecord()
-            newRecordObserver.schedule(
-                event_handler, settings["path"], recursive=False)
-            print("tracking: ", settings["path"])
-            newRecordObserver.start()
-            print("Started")
-        except FileNotFoundError as e:
-            print("Records directory could not be found")
-            default_path = os.path.expanduser("~\\speedrunigt\\records")
-            settings["path"] = input(
-                f"Path to SpeedrunIGT records folder (leave blank for \"{default_path}\"): "
-            ) or default_path # if input() is blank, use default
-            write_settings(settings)
-        else:
-            break
+    newRecordObserver = Observer()
+    event_handler = NewRecord()
+    newRecordObserver.schedule(
+        event_handler, settings["path"], recursive=False)
+    print("tracking: ", settings["path"])
+    newRecordObserver.start()
+
+    if 'delete-old-records' not in settings:
+        settings['delete-old-records'] = DEFAULT_SETTINGS['delete-old-records']
+        write_settings(settings)
+    
     if settings["delete-old-records"]:
         files = glob.glob(f'{settings["path"]}\\*.json')
         for f in files:
@@ -259,8 +227,7 @@ if __name__ == "__main__":
     setup()
         
     # init twitch
-    print("Enabling twitch integration...")
-    asyncio.run(twitchcmds.enable())
+    twitchcmds.setup()
 
     print("Tracking...")
     print("Type 'help' for help, 'quit' when you are done")
