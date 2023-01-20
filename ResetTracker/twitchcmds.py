@@ -46,6 +46,15 @@ def reset():
     completions = 0
     dirty = True
 
+def setcounters(counts):
+    global dirty, blinds, ees, completions
+    blinds[0] = counts[0]
+    blinds[1] = counts[1]
+    blinds[2] = counts[2]
+    blinds[3] = counts[3]
+    ees = counts[4]
+    completions = counts[5]
+
 async def update_command():
     global dirty
     if enabled and dirty:

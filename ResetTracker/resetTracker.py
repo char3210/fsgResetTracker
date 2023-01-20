@@ -239,9 +239,12 @@ if __name__ == "__main__":
                 val = input("")
             except:
                 val = ""
+            args = val.split(' ')
             if (val == "help") or (val == "?"):
+                print('help - print this help message')
                 print("quit - quit")
                 print("reset - resets twitch counters")
+                print('set <blinds> <sub4> <sub330> <sub3> <ees> <completions> - sets twitch counters')
             if (val == "stop") or (val == "quit"):
                 print("Stopping...")
                 live = False
@@ -250,6 +253,9 @@ if __name__ == "__main__":
                 twitchcmds.reset()
                 asyncio.run(twitchcmds.update_command())
                 print("...done")
+            if args[0] == 'set':
+                twitchcmds.setcounters(list(map(int, args[1:])))
+                print("Counters set, command preview:", twitchcmds.get_update_command())
             time.sleep(1)
     finally:
         newRecordObserver.stop()
