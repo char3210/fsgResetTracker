@@ -1,8 +1,0 @@
-{
-  "path": "PATH",
-  "sheets": {
-    "spreadsheet-link": "LINK"
-  },
-  "delete-old-records": true,
-  "break-offset": 20
-}

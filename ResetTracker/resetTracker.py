@@ -102,7 +102,7 @@ class NewRecord(FileSystemEventHandler):
 
         #increment completion count
         if self.data["is_completed"] and lan > self.data["final_igt"]:
-            twitchcmds.completion()
+            twitchcmds.completion(self.data["final_igt"])
 
         # Advancements
         has_done_something = False # has made an advancement
@@ -130,7 +130,7 @@ class NewRecord(FileSystemEventHandler):
                 if check[1] == "nether_travel":
                     twitchcmds.blind(int(time))
                 elif check[1] == "enter_end":
-                    twitchcmds.enter_end()
+                    twitchcmds.enter_end(int(time))
 
         # If nothing was done, just count as reset
         if not has_done_something:
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     try:
         while live:
             try:
-                val = input("")
+                val = input("% ")
             except:
                 val = ""
             args = val.split(' ')
@@ -249,19 +249,24 @@ if __name__ == "__main__":
                 print('help - print this help message')
                 print("quit - quit")
                 print("reset - resets twitch counters")
-                print('set <blinds> <sub4> <sub330> <sub3> <ees> <completions> - sets twitch counters')
-            if (val == "stop") or (val == "quit"):
+                print('update <counter> <value> - updates specified twitch counter. counter can be "blinds", "sub4", "sub330", "sub3", "ees", "completions", "blindtimes", "eestimes", "completiontimes". for lists (e.g. blindtimes), value should be a space-separated list of times')
+            elif (val == "stop") or (val == "quit"):
                 print("Stopping...")
                 live = False
-            if (val == "reset"):
+            elif (val == "reset"):
                 print("Resetting counters...")
                 twitchcmds.reset()
                 asyncio.run(twitchcmds.update_command())
                 print("...done")
-            if args[0] == 'set':
-                twitchcmds.setcounters(list(map(int, args[1:])))
-                print("Counters set, command preview:", twitchcmds.get_update_command())
-            time.sleep(1)
+            elif args[0] == 'update':
+                twitchcmds.updatecounter(args[1], args[2:])
+                asyncio.run(twitchcmds.update_command())
+                print("Counter set")
+            elif val == '':
+                pass
+            else:
+                print("Invalid command. Type 'help' for help")
+            time.sleep(0.05)
     finally:
         newRecordObserver.stop()
         twitchcmds.stop()

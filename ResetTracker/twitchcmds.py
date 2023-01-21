@@ -4,7 +4,8 @@ from twitchAPI.types import AuthScope, TwitchAPIException
 from twitchAPI.chat import Chat
 from twitchauth import ImplicitAuthenticator
 import asyncio
-from Settings import settings, write_settings
+from datetime import datetime, timedelta
+from Settings import settings, write_settings, DEFAULT_SETTINGS
 
 enabled = False
 dirty = False
@@ -14,6 +15,20 @@ room: str = None
 blinds = [0] * 4
 ees = 0
 completions = 0
+blindtimes = []
+eetimes = []
+completiontimes = []
+
+
+def ms_to_string(ms, returnTime=False):
+    if ms is None:
+        return None
+    ms = int(ms)
+    t = datetime(1970, 1, 1) + timedelta(milliseconds=ms)
+    if returnTime:
+        return t
+    return t.strftime("%H:%M:%S")
+
 
 def blind(time):
     """
@@ -27,17 +42,23 @@ def blind(time):
         blinds[2] += 1
     if time < 3*60*1000: # sub 3
         blinds[3] += 1
+    blindtimes.append(ms_to_string(time))
     dirty = True
 
-def enter_end():
+
+def enter_end(time):
     global dirty, ees
     ees += 1
+    eetimes.append(ms_to_string(time))
     dirty = True
 
-def completion():
+
+def completion(time):
     global dirty, completions
     completions += 1
+    completiontimes.append(ms_to_string(time))
     dirty = True
+
 
 def reset():
     global dirty, blinds, ees, completions
@@ -45,6 +66,7 @@ def reset():
     ees = 0
     completions = 0
     dirty = True
+
 
 def setcounters(counts):
     global dirty, blinds, ees, completions
@@ -55,6 +77,29 @@ def setcounters(counts):
     ees = counts[4]
     completions = counts[5]
 
+def updatecounter(counter, values):
+    global dirty, ees, completions, blindtimes, eetimes, completiontimes
+    if counter == "blinds":
+        blinds[0] = values[0]
+    elif counter == "sub4":
+        blinds[1] = values[0]
+    elif counter == "sub330":
+        blinds[2] = values[0]
+    elif counter == "sub3":
+        blinds[3] = values[0]
+    elif counter == "ees":
+        ees = values[0]
+    elif counter == "completions":
+        completions = values[0]
+    elif counter == "blindtimes":
+        blindtimes = values
+    elif counter == "eetimes":
+        eetimes = values
+    elif counter == "completiontimes":
+        completiontimes = values
+    dirty = True
+
+
 async def update_command():
     global dirty
     if enabled and dirty:
@@ -62,8 +107,26 @@ async def update_command():
         await chat.send_message(room, get_update_command())
 
 def get_update_command():
-    return f"!editcom !today Blinds: {blinds[0]} [Sub 4: {blinds[1]}] [Sub 3:30: {blinds[2]}] [Sub 3: {blinds[3]}] | " \
-        f"Enter Ends: {ees} | Completions: {completions}"
+    command = settings['twitch']['command']
+    format = settings['twitch']['format']
+    
+    return format.format(
+        command=command,
+        blinds=blinds[0], 
+        sub4=blinds[1], 
+        sub330=blinds[2], 
+        sub3=blinds[3], 
+        ees=ees, 
+        completions=completions, 
+        blindtimes=tostring(blindtimes), 
+        eetimes=tostring(eetimes),
+        completiontimes=tostring(completiontimes)
+    )
+
+def tostring(list):
+    if len(list) == 0:
+        return ""
+    return f"[{', '.join(list)}]"
 
 def setup():
     if 'twitch' not in settings:
@@ -82,6 +145,15 @@ def setup():
     print("Enabling twitch integration...")
 
     asyncio.run(enable())
+    
+    if 'format' not in twitchsettings:
+        twitchsettings['format'] = DEFAULT_SETTINGS['twitch']['format']
+        write_settings(settings)
+        
+    if 'command' not in twitchsettings:
+        twitchsettings['command'] = input('What twitch command should be updated? (leave blank for "!today") ') or "!today"
+        write_settings(settings)
+
 
 async def enable():
     twitch = await Twitch('cy0wkkzf69rj7gsvypb6tjxdvdoif3', authenticate_app=False)

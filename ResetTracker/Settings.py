@@ -10,7 +10,10 @@ DEFAULT_SETTINGS = {
         "spreadsheet-link": "LINK"
     },
     "delete-old-records": True,
-    "break-offset": 20
+    "break-offset": 20,
+    "twitch": {
+        "format": "!editcom {command} Blinds: {blinds} {blindtimes} | End Enters: {ees} {eetimes} | Completions: {completions} {completiontimes}"
+    }
 }
 
 def write_settings(settings):
