@@ -193,7 +193,7 @@ class NewRecord(FileSystemEventHandler):
         self.splitless_count = 0
         self.break_rta = 0
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     settings.update(read_settings())
     write_settings(settings)
 
@@ -206,7 +206,12 @@ if __name__ == "__main__":
         ) or default_path # if input() is blank, use default
         write_settings(settings)
 
-    #init record observer (required)
+    # create empty stats.csv if nonexistant
+    if not os.path.exists(statsCsv):
+        f = open(statsCsv, "w", newline="")
+        f.close()
+    
+    # init record observer (required)
     newRecordObserver = Observer()
     event_handler = NewRecord()
     newRecordObserver.schedule(
