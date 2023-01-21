@@ -138,10 +138,10 @@ dmypy.json
 cython_debug/
 
 credentials.json
+settings.json
 defualt_options.json
 ResetTracker/Sheets.py
 ResetTracker/credentials1.json
-ResetTracker/settings.json
 ResetTracker/test.py
 ResetTracker/stats.py
 ResetTracker/__init__.py
