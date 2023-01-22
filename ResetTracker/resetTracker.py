@@ -259,9 +259,11 @@ if __name__ == "__main__":
                 asyncio.run(twitchcmds.update_command())
                 print("...done")
             elif args[0] == 'update':
-                twitchcmds.updatecounter(args[1], args[2:])
-                asyncio.run(twitchcmds.update_command())
-                print("Counter set")
+                if twitchcmds.updatecounter(args[1], args[2:]):
+                    asyncio.run(twitchcmds.update_command())
+                    print("Counter set")
+                else:
+                    print("unknown counter", args[1])
             elif val == '':
                 pass
             else:

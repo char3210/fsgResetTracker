@@ -20,14 +20,17 @@ eetimes = []
 completiontimes = []
 
 
-def ms_to_string(ms, returnTime=False):
-    if ms is None:
-        return None
-    ms = int(ms)
-    t = datetime(1970, 1, 1) + timedelta(milliseconds=ms)
-    if returnTime:
-        return t
-    return t.strftime("%H:%M:%S")
+def ms_to_string(ms):
+    time = int(ms) // 1000
+    hr = time // 3600
+    min = (time % 3600) // 60
+    sec = time % 60
+    res = ''
+    if hr > 0:
+        res += f'{hr}:'
+    res += f'{min:02d}:' if hr > 0 else f'{min}:'
+    res += f'{sec:02d}'
+    return res
 
 
 def blind(time):
@@ -97,7 +100,10 @@ def updatecounter(counter, values):
         eetimes = values
     elif counter == "completiontimes":
         completiontimes = values
+    else:
+        return False
     dirty = True
+    return True
 
 
 async def update_command():
