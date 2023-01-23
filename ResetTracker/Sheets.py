@@ -60,6 +60,7 @@ def main():
     try:
 
         # Setting up constants and verifying
+        global dataSheet
         dataSheet = sh.worksheet("Raw Data")
         color = (15.0, 15.0, 15.0)
         global pushedLines

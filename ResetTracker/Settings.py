@@ -13,7 +13,8 @@ DEFAULT_SETTINGS = {
     "break-offset": 20,
     "twitch": {
         "format": "!editcom {command} Blinds: {blinds} {blindtimes} | End Enters: {ees} {eetimes} | Completions: {completions} {completiontimes}"
-    }
+    },
+    "detect-coop": True
 }
 
 def write_settings(settings):

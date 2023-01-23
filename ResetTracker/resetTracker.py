@@ -6,6 +6,7 @@ import glob
 import os
 from datetime import datetime, timedelta
 import threading
+import Sheets
 from Sheets import main, setup
 from Settings import settings, read_settings, write_settings, DEFAULT_SETTINGS
 from watchdog.events import FileSystemEventHandler
@@ -93,7 +94,7 @@ class NewRecord(FileSystemEventHandler):
         stats = self.data["stats"][uids[0]]["stats"]
         adv = self.data["advancements"]
         lan = self.data["open_lan"]
-        if lan is not None:
+        if (lan is not None) and not (settings['detect-coop'] and len(data['stats']) > 1):
             lan = int(lan)
         else:
             lan = math.inf
@@ -227,6 +228,10 @@ if __name__ == "__main__":
         files = glob.glob(f'{settings["path"]}\\*.json')
         for f in files:
             os.remove(f)
+            
+    if 'detect-coop' not in settings:
+        settings['detect-coop'] = DEFAULT_SETTINGS['detect-coop']
+        write_settings(settings)
     
     # init sheets
     setup()
@@ -250,6 +255,8 @@ if __name__ == "__main__":
                 print("quit - quit")
                 print("reset - resets twitch counters")
                 print('update <counter> <value> - updates specified twitch counter. counter can be "blinds", "sub4", "sub330", "sub3", "ees", "completions", "blindtimes", "eestimes", "completiontimes". for lists (e.g. blindtimes), value should be a space-separated list of times')
+                print('undo - deletes latest entry')
+                print('eval <python code> - evaluates python code')
             elif (val == "stop") or (val == "quit"):
                 print("Stopping...")
                 live = False
@@ -264,6 +271,26 @@ if __name__ == "__main__":
                     print("Counter set")
                 else:
                     print("unknown counter", args[1])
+            elif val == 'undo':
+                with open(statsCsv, "r") as infile:
+                    reader = list(csv.reader(infile))
+                if len(reader) != 0:
+                    print('Deleting latest entry from stats.csv', reader.pop(0))
+                    with open(statsCsv, "w", newline="") as outfile:
+                        writer = csv.writer(outfile)
+                        for line in reader:
+                            writer.writerow(line)
+                else:
+                    if settings['sheets']['enabled']:
+                        print('Deleting latest entry from Google Sheets')
+                        Sheets.dataSheet.delete_rows(2)
+            elif args[0] == 'eval':
+                try:
+                    r = eval(' '.join(args[1:]))
+                    if r is not None:
+                        print(r)
+                except Exception as e:
+                    print(str(type(e))[8:-2] + ":", e)
             elif val == '':
                 pass
             else:
