@@ -94,7 +94,7 @@ class NewRecord(FileSystemEventHandler):
         stats = self.data["stats"][uids[0]]["stats"]
         adv = self.data["advancements"]
         lan = self.data["open_lan"]
-        if (lan is not None) and not (settings['detect-coop'] and len(data['stats']) > 1):
+        if (lan is not None) and not (settings['detect-coop'] and len(self.data['stats']) > 1):
             lan = int(lan)
         else:
             lan = math.inf
