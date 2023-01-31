@@ -54,8 +54,14 @@ class NewRecord(FileSystemEventHandler):
         return True, ""
 
     def on_created(self, evt):
+        try:
+            self.process_file(evt.src_path)
+        except Exception as e:
+            print(e)
+        
+    def process_file(self, path):
         self.this_run = [None] * (len(advChecks) + 2 + len(statsChecks))
-        self.path = evt.src_path
+        self.path = path
         with open(self.path, "r") as record_file:
             try:
                 self.data = json.load(record_file)
@@ -231,6 +237,10 @@ if __name__ == "__main__":
             
     if 'detect-coop' not in settings:
         settings['detect-coop'] = DEFAULT_SETTINGS['detect-coop']
+        write_settings(settings)
+        
+    if 'break-offset' not in settings:
+        settings['break-offset'] = DEFAULT_SETTINGS['break-offset']
         write_settings(settings)
     
     # init sheets
