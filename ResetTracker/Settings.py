@@ -14,7 +14,7 @@ DEFAULT_SETTINGS = {
     "twitch": {
         "format": "!editcom {command} Blinds: {blinds} {blindtimes} | End Enters: {ees} {eetimes} | Completions: {completions} {completiontimes}"
     },
-    "detect-coop": True
+    "detect-coop": False
 }
 
 def write_settings(settings):
